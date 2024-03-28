@@ -26,13 +26,15 @@ export const StyledButton = styled.button`
 
   &:disabled {
     cursor: default;
+    color: gray;
 
     &:hover {
-      background-color: inherit;
+      background-color: transparent;
     }
 
     * {
       fill: gray;
+      color: gray;
     }
   }
 `;

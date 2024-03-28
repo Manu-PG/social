@@ -38,3 +38,9 @@ export const getCommentsByPostId = (postId: number) => {
     .get<Comment[]>(`${BASE_URL}/post/${postId}/comments`)
     .then(({ data }) => data);
 };
+
+export const postNewPost = (newPost: Post) => {
+  return axios
+    .post<Post>(`${BASE_URL}/posts`, newPost)
+    .then(({ data }) => data);
+};

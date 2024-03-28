@@ -10,7 +10,7 @@ export const PaginationNavigatorContainer = styled.div`
 `;
 
 export const StyledButton = styled(Button)`
-  background-color: #202327 !important; /* falla si Button.styled.ts se guarda el ultimo */
+  background-color: #202327;
   border: 1px solid #202327;
 
   &:active {
