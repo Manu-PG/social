@@ -37,10 +37,10 @@ const usePostList = (page?: number, limit?: number, filter?: string) => {
     }
   };
 
-  const getPostData = async (_page: number, _limit: number, localPosts: Post[]) => {
+  const getPostData = async (_page: number, _limit: number, temporalPosts: Post[]) => {
     const apiPosts = await getPaginatedPosts({ _page, _limit });
 
-    const postIds = localPosts.map(({ id }) => id);
+    const postIds = temporalPosts.map(({ id }) => id);
 
     const mergedPosts = [...postData, ...apiPosts.filter(({ id }) => !postIds.includes(id))];
     const populatedPostWithUsers = await populateUsers(mergedPosts);
@@ -61,15 +61,24 @@ const usePostList = (page?: number, limit?: number, filter?: string) => {
   };
 
   const populateUsers = async (postList: Post[]) => {
-    const userIds = postList.map(({ userId }) => userId);
-    const userList = await getUsersByIds(userIds);
+    const postWithEmptyUsers = postList.filter((post) => !post.user);
 
-    return postList.map((post) => {
-      return {
-        ...post,
-        user: userList.find(({ id }) => id === post.userId),
-      };
-    });
+    if (postWithEmptyUsers.length) {
+      const userIds = postWithEmptyUsers.map(({ userId }) => userId);
+      const userList = await getUsersByIds(userIds);
+      createToast({
+        text: `Users loaded from API id: ${userList.map(({ id }) => id)}`,
+        timeOut: 5000,
+      });
+
+      return postList.map((post) => {
+        const user = userList.find(({ id }) => id === post.userId);
+        return {
+          ...post,
+          user: user ? user : post.user,
+        };
+      });
+    } else return postList;
   };
 
   const filterPosts = (filter: string) => {

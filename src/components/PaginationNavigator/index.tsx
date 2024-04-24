@@ -12,11 +12,7 @@ type PagesNavigatorProps = {
   className?: string;
 };
 
-const PaginationNavigator = ({
-  pagination,
-  setPagination,
-  className,
-}: PagesNavigatorProps) => {
+const PaginationNavigator = ({ pagination, setPagination, className }: PagesNavigatorProps) => {
   const setPage = (newPage: number) => {
     setPagination((currentValue) => {
       if (!currentValue._limit) return {};
@@ -44,9 +40,6 @@ const PaginationNavigator = ({
     switch (pagination._limit) {
       case undefined:
       case 0:
-        setLimit(5);
-        break;
-      case 5:
         setLimit(10);
         break;
       case 10:
@@ -67,9 +60,7 @@ const PaginationNavigator = ({
         onClick={() => {
           setPage(pagination._page ? pagination._page - 1 : 1);
         }}
-        disabled={
-          !pagination._limit || !pagination._page || pagination._page <= 1
-        }
+        disabled={!pagination._limit || !pagination._page || pagination._page <= 1}
       >
         <ArrorSVG direction="left" />
       </StyledButton>
