@@ -1,26 +1,19 @@
 import { useNavigate, useParams } from "react-router-dom";
-import usePostAndComments from "../../api/hooks/usePostAndComments";
+import usePostDetail from "../../api/hooks/usePostDetail";
 import { RequestStatus } from "../../api/postTypes";
 import DetailedPostHeader from "./components/DetailedPostHeader";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import ErrorPlaceholder from "../../components/ErrorPlaceholder";
-import {
-  CenterElementContainer,
-  PostDetailedContainer,
-} from "./PostDetail.styled";
-import Comments from "../../components/Comments";
+import { CenterElementContainer, PostDetailedContainer } from "./PostDetail.styled";
 import DetailedPost from "./components/DetailedPost";
+import Comments from "../../components/Comments";
 
 const PostDetail = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
-  const { postData, userData, commentsData, overallRequestStatus } =
-    usePostAndComments(Number(postId));
+  const { postDetail, requestStatus } = usePostDetail(Number(postId));
 
-  if (
-    overallRequestStatus.includes(RequestStatus.IDLE) ||
-    overallRequestStatus.includes(RequestStatus.LOADING)
-  ) {
+  if (requestStatus === RequestStatus.LOADING) {
     return (
       <PostDetailedContainer>
         <DetailedPostHeader onClick={() => navigate("/")} />
@@ -31,7 +24,7 @@ const PostDetail = () => {
     );
   }
 
-  if (overallRequestStatus.includes(RequestStatus.ERROR)) {
+  if (requestStatus === RequestStatus.ERROR) {
     return (
       <PostDetailedContainer>
         <DetailedPostHeader onClick={() => navigate("/")} />
@@ -46,11 +39,11 @@ const PostDetail = () => {
     <PostDetailedContainer>
       <DetailedPostHeader onClick={() => navigate("/")} />
       <DetailedPost
-        account={`@${userData?.username}`}
-        name={userData?.name || ""}
-        text={postData?.body || ""}
+        account={`@${postDetail?.user?.username}`}
+        name={postDetail?.user?.name || ""}
+        text={postDetail?.body || ""}
       />
-      <Comments commentsData={commentsData} />
+      <Comments commentsData={postDetail?.comments} />
     </PostDetailedContainer>
   );
 };

@@ -10,6 +10,9 @@ export type Post = {
   id?: number;
   title: string;
   body: string;
+  user?: User;
+  comments?: Comment[];
+  new?: boolean;
 };
 
 export type Comment = {

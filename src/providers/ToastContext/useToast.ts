@@ -12,7 +12,7 @@ const useToast = () => {
   };
 
   const createToast = (newToast: Omit<ToastData, "id">) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
 
     setToastList((currentToastList) => [
       ...currentToastList,

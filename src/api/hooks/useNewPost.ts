@@ -1,19 +1,18 @@
-import { useState } from "react";
-import { Post, RequestStatus } from "../postTypes";
-import { postNewPost } from "../postCalls";
+import { useContext, useState } from "react";
+import { postNewPost } from "../../api/postCalls";
+import { Post, RequestStatus } from "../../api/postTypes";
 import useToast from "../../providers/ToastContext/useToast";
+import { PostContext } from "../../providers/PostContext";
 
-const useNewPost = (
-  setLocalPosts: React.Dispatch<React.SetStateAction<Post[]>>
-) => {
-  const [newPostText, setNewPostText] = useState<string>("");
-  const [newPostRequestStatus, setNewPostRequestStatus] =
-    useState<RequestStatus>(RequestStatus.IDLE);
+const useNewPost = () => {
+  const { postData, setPostData } = useContext(PostContext);
+  const [requestStatus, setRequestStatus] = useState<RequestStatus>(RequestStatus.IDLE);
+  const [localPosts, setLocalPosts] = useState<Post[]>([]);
 
   const { createToast } = useToast();
 
   const sendNewPost = (newPostText: string) => {
-    setNewPostRequestStatus(RequestStatus.LOADING);
+    setRequestStatus(RequestStatus.LOADING);
 
     const newPost: Post = {
       userId: 4,
@@ -21,23 +20,24 @@ const useNewPost = (
       body: newPostText,
     };
 
-    postNewPost(newPost)
+    return postNewPost(newPost)
       .then((post) => {
         setLocalPosts((currentLocalPosts) => [
           ...currentLocalPosts,
           { ...post, id: Number(new Date()) }, //falsear Id, no usar en entorno real
         ]);
-        setNewPostText("");
-        setNewPostRequestStatus(RequestStatus.IDLE);
+
+        setRequestStatus(RequestStatus.IDLE);
         createToast({ text: "Post Sent!" });
       })
-      .catch((e) => {
-        setNewPostRequestStatus(RequestStatus.ERROR);
-        createToast({ text: e.message, type: "ERROR", timeOut: 10000 });
+      .catch((error) => {
+        setRequestStatus(RequestStatus.ERROR);
+        createToast({ text: error.message, type: "ERROR", timeOut: 10000 });
+        throw new Error(error);
       });
   };
 
-  return { newPostText, setNewPostText, newPostRequestStatus, sendNewPost };
+  return { sendNewPost, requestStatus };
 };
 
 export default useNewPost;

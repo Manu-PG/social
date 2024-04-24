@@ -1,28 +1,20 @@
 import { Link } from "react-router-dom";
-import { Post, RequestStatus, User } from "../../../../api/postTypes";
+import { RequestStatus } from "../../../../api/postTypes";
 import ErrorPlaceholder from "../../../../components/ErrorPlaceholder";
 import LoadingSpinner from "../../../../components/LoadingSpinner";
-import {
-  CenterElementContainer,
-  StyledCompactPost,
-} from "./PostListResult.styled";
+import { CenterElementContainer, StyledCompactPost } from "./PostListResult.styled";
+import usePostList from "../../../../api/hooks/usePostsList";
 
-type PostListResultProps = {
-  postsData: Post[];
-  usersData: User[];
-  requestStatus: RequestStatus;
+type PostListProps = {
+  page?: number;
+  limit?: number;
+  filter?: string;
 };
 
-const PostListResult = ({
-  postsData,
-  usersData,
-  requestStatus,
-}: PostListResultProps) => {
-  if (
-    requestStatus === RequestStatus.IDLE ||
-    requestStatus === RequestStatus.LOADING
-  ) {
-    //if ([RequestStatus.IDLE, RequestStatus.LOADING].includes(requestStatus)) {
+const PostListResult = ({ page, limit, filter }: PostListProps) => {
+  const { resultPosts, requestStatus } = usePostList(page, limit, filter);
+
+  if (requestStatus === RequestStatus.IDLE || requestStatus === RequestStatus.LOADING) {
     return (
       <CenterElementContainer>
         <LoadingSpinner />
@@ -38,17 +30,12 @@ const PostListResult = ({
     );
   }
 
-  return postsData.map((postData) => {
-    const userData = usersData.find(({ id }) => id === postData.userId);
-    const { id, body } = postData;
+  return resultPosts.map((postData) => {
+    const { id, body, user } = postData;
 
     return (
       <Link key={id} to={`post/${id}`} relative="path">
-        <StyledCompactPost
-          account={`@${userData?.username}`}
-          name={userData?.name || ""}
-          text={body}
-        />
+        <StyledCompactPost account={`@${user?.username}`} name={user?.name || ""} text={body} />
       </Link>
     );
   });

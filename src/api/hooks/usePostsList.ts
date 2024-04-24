@@ -1,63 +1,98 @@
-import { useEffect, useState } from "react";
-import { getPaginatedPosts, getUsersByIds } from "../postCalls";
-import { Pagination, Post, RequestStatus, User } from "../postTypes";
-import { includesInsensitive } from "../../utils";
+import { useContext, useEffect, useState } from "react";
+import { getPaginatedPosts, getUsersByIds } from "../../api/postCalls";
+import { Post, RequestStatus } from "../../api/postTypes";
 import useToast from "../../providers/ToastContext/useToast";
+import { PostContext } from "../../providers/PostContext";
+import { includesInsensitive } from "../../utils";
 
-const usePostsList = (
-  filter: string,
-  pagination?: Pagination,
-  localPosts?: Post[]
-) => {
-  const [usersData, setUsersData] = useState<User[]>([]);
-  const [postsData, setPostsData] = useState<Post[]>([]);
-  const [requestStatus, setRequestStatus] = useState<RequestStatus>(
-    RequestStatus.IDLE
-  );
+const usePostList = (page?: number, limit?: number, filter?: string) => {
+  const { postData, setPostData } = useContext(PostContext);
+  const [resultPosts, setResultPosts] = useState<Post[]>([]);
+  const [requestStatus, setRequestStatus] = useState<RequestStatus>(RequestStatus.IDLE);
   const { createToast } = useToast();
 
-  useEffect(() => {
+  const fetchPosts = (page: number, limit: number) => {
     setRequestStatus(RequestStatus.LOADING);
 
-    getPaginatedPosts(pagination)
-      .then((posts) => {
-        setPostsData(posts);
-        const userIds = posts.map(({ userId }) => userId);
+    const startIndexId = (page - 1) * limit + 1;
+    const endIndexId = startIndexId + limit - 1;
+    const temporalPosts = postData.filter(
+      ({ id }) => id !== undefined && startIndexId <= id && id <= endIndexId
+    );
 
-        return getUsersByIds(userIds);
+    if (temporalPosts.length === limit) {
+      setResultPosts(temporalPosts);
+      setRequestStatus(RequestStatus.OK);
+      //createToast({ text: "Post recover from local" });
+    } else {
+      getPostData(page, limit, temporalPosts)
+        .then(() => {
+          createToast({ text: "Post loaded from API" });
+          setRequestStatus(RequestStatus.OK);
+        })
+        .catch((error) => {
+          setRequestStatus(RequestStatus.ERROR);
+          createToast({ text: error.message, timeOut: 10000, type: "ERROR" });
+        });
+    }
+  };
+
+  const getPostData = async (_page: number, _limit: number, localPosts: Post[]) => {
+    const apiPosts = await getPaginatedPosts({ _page, _limit });
+
+    const postIds = localPosts.map(({ id }) => id);
+
+    const mergedPosts = [...postData, ...apiPosts.filter(({ id }) => !postIds.includes(id))];
+    const populatedPostWithUsers = await populateUsers(mergedPosts);
+    const sortedPosts = populatedPostWithUsers.sort(sortPostHandler);
+
+    if (sortedPosts.length !== postData.length) {
+      setPostData(sortedPosts);
+    } else {
+      setResultPosts([]);
+    }
+  };
+
+  const sortPostHandler = (a: Post, b: Post) => {
+    if (!a.id || !b.id) return 0;
+    else if (a.id > b.id) return 1;
+    else if (a.id < b.id) return -1;
+    return 0;
+  };
+
+  const populateUsers = async (postList: Post[]) => {
+    const userIds = postList.map(({ userId }) => userId);
+    const userList = await getUsersByIds(userIds);
+
+    return postList.map((post) => {
+      return {
+        ...post,
+        user: userList.find(({ id }) => id === post.userId),
+      };
+    });
+  };
+
+  const filterPosts = (filter: string) => {
+    setResultPosts(
+      postData.filter((post) => {
+        const { user, body } = post;
+        const nameFilter = user && includesInsensitive(user.name, filter);
+        const usernameFilter = user && includesInsensitive(user.username, filter);
+        const bodyFilter = includesInsensitive(body, filter);
+        return nameFilter || usernameFilter || bodyFilter;
       })
-      .then((users) => {
-        setUsersData(users);
-        setRequestStatus(RequestStatus.OK);
-        createToast({ text: "Post Loaded!" });
-      })
-      .catch((e) => {
-        createToast({ text: e.message, type: "ERROR", timeOut: 10000 });
-        return setRequestStatus(RequestStatus.ERROR);
-      });
-  }, [pagination]);
+    );
+  };
 
-  const allPosts: Post[] =
-    localPosts && !pagination?._limit
-      ? [...localPosts, ...postsData]
-      : postsData;
+  useEffect(() => {
+    if (filter && filter !== "") filterPosts(filter);
+    else fetchPosts(page || 1, limit || postData.length);
+  }, [page, limit, postData, filter]);
 
-  const filteredPosts =
-    allPosts.filter((postData) => {
-      const userData = usersData.find(({ id }) => id === postData.userId);
-
-      const name = userData?.name || "";
-      const username = userData?.username || "";
-
-      //const { name, username } = userData ?? { name: "", username: "" };
-
-      const searchMatchesName = includesInsensitive(name, filter);
-      const searchMatchesUsername = includesInsensitive(username, filter);
-
-      return searchMatchesName || searchMatchesUsername;
-    }) || [];
-
-  return { postsData: filteredPosts, usersData, requestStatus };
+  return {
+    resultPosts,
+    requestStatus,
+  };
 };
 
-export default usePostsList;
+export default usePostList;

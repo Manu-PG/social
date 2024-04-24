@@ -12,22 +12,16 @@ import {
 } from "./NewPost.styled";
 import { RequestStatus } from "../../api/postTypes";
 import { useState } from "react";
+import useNewPost from "../../api/hooks/useNewPost";
 
 type NewPostProps = {
-  postMessage: string;
-  onChangePostMessage: React.Dispatch<React.SetStateAction<string>>;
-  status: RequestStatus;
-  onSendPost: (text: string) => void;
   charsLimit: number;
 };
 
-const NewPost = ({
-  postMessage,
-  onChangePostMessage,
-  status,
-  onSendPost,
-  charsLimit,
-}: NewPostProps) => {
+const NewPost = ({ charsLimit }: NewPostProps) => {
+  const { sendNewPost, requestStatus } = useNewPost();
+  const [postMessage, setPostMessage] = useState<string>("");
+
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const charsLeft = charsLimit - postMessage.length;
 
@@ -39,7 +33,7 @@ const NewPost = ({
       <MessageContainer>
         <StyledTextArea
           value={postMessage}
-          onChange={({ target }) => onChangePostMessage(target.value)}
+          onChange={({ target }) => setPostMessage(target.value)}
           placeholder="What's going on?!"
           maxLength={charsLimit}
           onFocusChange={(isInFocus) => setIsInputFocused(isInFocus)}
@@ -54,12 +48,14 @@ const NewPost = ({
           ) : null}
           <StyledButton
             onClick={() => {
-              onSendPost(postMessage);
+              sendNewPost(postMessage)
+                .then(() => setPostMessage(""))
+                .catch(() => {}); //<- evitar que vacie el textArea asi es feo, otra forma?
             }}
             disabled={!postMessage.length}
-            showError={status === RequestStatus.ERROR}
+            showError={requestStatus === RequestStatus.ERROR}
           >
-            {status === RequestStatus.LOADING ? <StyledSpinner /> : "Send"}
+            {requestStatus === RequestStatus.LOADING ? <StyledSpinner /> : "Send"}
           </StyledButton>
         </BottomAreaContainer>
       </MessageContainer>
