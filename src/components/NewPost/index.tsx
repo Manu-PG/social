@@ -13,6 +13,7 @@ import {
 import { RequestStatus } from "../../api/postTypes";
 import { useState } from "react";
 import useNewPost from "../../api/hooks/useNewPost";
+import useToast from "../../providers/ToastContext/useToast";
 
 type NewPostProps = {
   charsLimit: number;
@@ -25,7 +26,20 @@ const NewPost = ({ charsLimit }: NewPostProps) => {
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const charsLeft = charsLimit - postMessage.length;
 
+  const { createToast } = useToast();
+
   const isExtendedView = isInputFocused || postMessage;
+
+  const sendPost = () => {
+    sendNewPost(postMessage)
+      .then(() => {
+        setPostMessage("");
+        createToast({ text: "Post Sent!" });
+      })
+      .catch((error) => {
+        createToast({ text: error.message, type: "ERROR", timeOut: 10000 });
+      });
+  };
 
   return (
     <NewPostContainer>
@@ -47,11 +61,7 @@ const NewPost = ({ charsLimit }: NewPostProps) => {
             </>
           ) : null}
           <StyledButton
-            onClick={() => {
-              sendNewPost(postMessage)
-                .then(() => setPostMessage(""))
-                .catch(() => {}); //<- evitar que vacie el textArea asi es feo, otra forma?
-            }}
+            onClick={sendPost}
             disabled={!postMessage.length}
             showError={requestStatus === RequestStatus.ERROR}
           >
